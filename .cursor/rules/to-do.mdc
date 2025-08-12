@@ -1,0 +1,10 @@
+Feedback individuel – à corriger avant dépôt
+Diagramme de classes : relations incorrectes (diagramme généré par package). Outil recommandé en priorité : Modelio. Intégrer le diagramme au PDF (pas besoin des sources).
+Base de données : absence de contrainte pour provider icon.
+Sécurité : route de stream non protégée par auth.
+Post-login : pas de redirection vers l’interface de chat.
+Responsive : interface non responsive.
+Sélecteur de modèle : impossible de fermer (bouton/Esc).
+Instructions personnalisées : non utilisées.
+UI à la réception de messages : bug d’interface observé.
+Rendu markdown / code : pas de mise en forme markdown et highlighting inactif.
