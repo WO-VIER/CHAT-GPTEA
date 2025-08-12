@@ -1,4 +1,8 @@
 *.log
+*.vscode
+.idea/
+.cursor/
+*.cursor
 .DS_Store
 .env
 .env.backup
