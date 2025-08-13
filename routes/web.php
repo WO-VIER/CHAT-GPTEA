@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Application;
 use App\Http\Controllers\AskController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\AiModelController;
 use App\Http\Controllers\ProviderIconController;
 use App\Http\Controllers\ConversationController;
@@ -64,10 +65,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::prefix('dev/aimodel')->group(function () {
         Route::get('populate', [AiModelController::class, 'populateFromApiGetModels'])->name('aimodel.populate');
     });
+
+    Route::prefix('dev/user/')->group(function () {
+        Route::get('{id}', [UserController::class, 'show'])->name('user.show');
+    });
 });
 
 Route::get('/clear-cache', function () {
-    \Illuminate\Support\Facades\Cache::flush();
+    Cache::flush();
     return 'Cache vidé avec succès ! <br><a href="/ask">Retourner à l\'application</a>';
 });
 

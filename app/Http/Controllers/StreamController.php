@@ -28,6 +28,13 @@ class StreamController extends Controller
             'conversation_id' => 'nullable|integer',
         ]);
 
+        Debugbar::info('streamMessage - Début', [
+            'model_recu ' => $request->model,
+            'message' => $request->text,
+            'conversation_id' => $request->conversation_id,
+            'user_id' => auth()->id()
+        ]);
+
         $user = auth()->user();
         //$conversationId = session('currentConversationId');
         $conversationId = $request->conversation_id;
@@ -41,7 +48,15 @@ class StreamController extends Controller
         }
 
         $allMessages = $conversation->getAllMessages();
-        Debugbar::info('Tout les messages dans streamMessage', $allMessages);
+
+
+        Debugbar::info('CONVERSATION complète', [
+            'conversation_id' => $conversation->id,
+            'conversation_title' => $conversation->title,
+            'nb_messages_historique' => count($allMessages),
+            'messages_historique' => $allMessages
+        ]);
+
         $allMessages[] = ['role' => 'user', 'content' => $request->text];
         return response()->stream(function () use ($allMessages, $request, $conversation, $user) {
             $fullResponce = '';

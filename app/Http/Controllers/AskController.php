@@ -29,9 +29,6 @@ class AskController extends Controller
     {
         $chat = new ChatService();
         $modelsFromDb = $chat->getModelsFromDb();
-        $selectedModel = ChatService::DEFAULT_MODEL;
-
-
         /**
          * Array
          * [
@@ -47,7 +44,26 @@ class AskController extends Controller
          */
 
         $conversations = $this->conversationService->getAllConversationsWithMessages();
+
         $currentConversationId = session('currentConversationId');
+        // Récupérer le dernier message de la conversation courante pour obtenir le modèle associé
+        /*
+        $selectedModel = ChatService::DEFAULT_MODEL;
+        if ($currentConversationId && isset($conversations[$currentConversationId]['messages']) && count($conversations[$currentConversationId]['messages']) > 0) {
+            $lastMessage = $conversations[$currentConversationId]['messages'][0]; // messages sont triés par 'created_at' desc
+            if (isset($lastMessage['model'])) {
+                $selectedModel = $lastMessage['model'];
+            }
+        }*/
+        $selectedModel = $this->conversationService->getLastModelOfConversation($currentConversationId);
+        session(['selectedModel' => $selectedModel]);
+        Debugbar::info('Session', session()->all());
+        //$selectedModel = session(['selectedModel' => $]);
+        $validModel = AiModel::firstWhere('model_id', $selectedModel);
+        if (!$validModel || !$validModel['is_active']) {
+            $selectedModel = ChatService::DEFAULT_MODEL;
+            session(['selectedModel' => $selectedModel]);
+        }
         Debugbar::info('Conversations:', $conversations);
         Debugbar::info('ID de conversation actuelle:', $currentConversationId);
 

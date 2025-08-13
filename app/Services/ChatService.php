@@ -6,7 +6,9 @@ use App\Models\ProviderIcon;
 use Illuminate\Support\Facades\Http;
 use App\Models\AiModel;
 use App\Models\Message;
+use Barryvdh\Debugbar\Twig\Extension\Debug;
 use Debugbar;
+use DebugBar\DebugBar as DebugBarDebugBar;
 use GuzzleHttp\Promise\Create;
 use OpenAI\Responses\Chat\CreateResponseMessage;
 use phpDocumentor\Reflection\PseudoTypes\LowercaseString;
@@ -19,6 +21,7 @@ class ChatService
     private $baseUrl;
     private $apiKey;
     private $client;
+    //public const DEFAULT_MODEL = 'qwen/qwen2.5-vl-72b-instruct:free';
     public const DEFAULT_MODEL = 'openai/gpt-4.1-mini';
     public string $lasMessage = '';
     public string $lastModel = self::DEFAULT_MODEL;
@@ -88,7 +91,7 @@ class ChatService
             'hasCommands' => false,
             'hasContext' => false,
         ];
-        //$pattern = '/[\/\@](\w+)/';
+
         $pattern = '/\{\/(\w+)\}/';
         preg_match_all($pattern, $message, $matches);
 
@@ -107,7 +110,13 @@ class ChatService
         }
 
         $result['cleanMessage'] = preg_replace($pattern, '', $message);
+
+        //Nettoyage des espace en début et fin
+        $result['cleanMessage'] = preg_replace($pattern, '', $message);
         $result['cleanMessage'] = trim($result['cleanMessage']);
+
+        if (empty($result['cleanMessage'] && ($result['hasCommands'] || $result['hasContext'])))
+            $result['cleanMessage'] = '';
         return $result;
     }
 
@@ -139,70 +148,55 @@ class ChatService
      *
      * @param array{role: 'assistant'|'function'|'system'|'user', content: string} $messages
      */
-    public function sendMessageStreamOne(array $messages, ?string $model = null, float $temperature = 0.7)
-    {
-        try {
-            logger()->info('Envoi du message', [
-                'model' => $model,
-                'temperature' => $temperature,
-            ]);
-
-            $models = collect($this->getModels());
-            if (!$model || !$models->contains('id', $model)) {
-                $model = self::DEFAULT_MODEL;
-                logger()->info('Modèle par défaut utilisé:', ['model' => $model]);
-            }
-
-            $lastMessage = $messages[count($messages) - 1]['content']; //Message de l'utilisateur vers ia
-            $parsedMessage = $this->parseMessage($lastMessage); //Parse le dernier message
-            //dd($parsedMessage);
-            if (!empty($parsedMessage['cleanMessage']))
-                $messages[count($messages) - 1]['content'] = $parsedMessage['cleanMessage'];
-            $messages = [$this->getChatSystemPrompt($parsedMessage), ...$messages];
-            //dd($messages);
-            //$messages = [$this->getChatSystemPrompt($parsedMessage['hasCommands'],$parsedMessage['commands']), ...$parsedMessage['cleanMessage']];
-
-            //dd($messages);
-            //$messages = [$this->getChatSystemPrompt($parsedMessage['hasCommands'],$parsedMessage['commands']), ...$parsedMessage['cleanMessage']];
-            //dd($messages);
-            $stream = $this->client->chat()->createStreamed([
-                'model' => $model,
-                'messages' => $messages,
-                'temperature' => $temperature,
-                'stream' => true,
-            ]);
-            return $stream;
-        } catch (\Exception $e) {
-            logger()->error('Erreur dans sendMessageStream', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            throw $e;
-        }
-    }
-
     public function sendMessageStream(array $messages, ?string $model = null, float $temperature = 0.7)
     {
         try {
-            logger()->info('Envoi du message', [
-                'model' => $model,
+            $validateModel = $this->checkModel($model);
+
+            logger()->info('Debut sendMessageStream', [
+                'model_requested' => $model,
+                'model_validated' => $validateModel,
                 'temperature' => $temperature,
+                'nombres_de_messages' => count($messages),
             ]);
 
-            $model = $this->checkModel($model);
-            /*
+            /* Old verif before checkModel()
+            $models = collect($this->getModels());
             if (!$model || !$models->contains('id', $model)) {
                 $model = self::DEFAULT_MODEL;
                 logger()->info('Modèle par défaut utilisé:', ['model' => $model]);
             }
             */
             $lastMessage = $messages[count($messages) - 1]['content']; //Message de l'utilisateur vers ia
+
+
             $parsedMessage = $this->parseMessage($lastMessage); //Parse le dernier message
-            //dd($parsedMessage);
+
+            logger()->info('Parsing du message', [
+                'og_message' => $lastMessage,
+                'result_parsing' => $parsedMessage,
+                'clean_message' => $parsedMessage['cleanMessage'],
+            ]);
+
             if (!empty($parsedMessage['cleanMessage']))
                 $messages[count($messages) - 1]['content'] = $parsedMessage['cleanMessage'];
-            $messages = [$this->getChatSystemPrompt($parsedMessage), ...$messages];
+            //$messages = [$this->getChatSystemPrompt($parsedMessage), ...$messages];
+
+            $systemPrompt = $this->getChatSystemPrompt($parsedMessage);
+
+            logger()->info('System prompt', [
+                'system_prompt' => $systemPrompt,
+                'user_context_inclus' => $parsedMessage['hasContext'],
+                'commandes_detectées' => $parsedMessage['hasCommands'] ? $parsedMessage['commands'] : 'aucune'
+            ]);
+
+            $messages = [$systemPrompt, ...$messages];
+
+            logger()->info('Envoi', [
+                'model' => $validateModel,
+                'full_message' => $messages,
+                'nombres_de_messages' => count($messages),
+            ]);
             //dd($messages);
             //$messages = [$this->getChatSystemPrompt($parsedMessage['hasCommands'],$parsedMessage['commands']), ...$parsedMessage['cleanMessage']];
 
@@ -210,7 +204,7 @@ class ChatService
             //$messages = [$this->getChatSystemPrompt($parsedMessage['hasCommands'],$parsedMessage['commands']), ...$parsedMessage['cleanMessage']];
             //dd($messages);
             $stream = $this->client->chat()->createStreamed([
-                'model' => $model,
+                'model' => $validateModel,
                 'messages' => $messages,
                 'temperature' => $temperature,
                 'stream' => true,
@@ -292,18 +286,18 @@ class ChatService
 
         $systemContext = "Tu es un assistant de chat. La date et l'heure actuelle est le {$now}.\n Tu es actuellement utilisé par {$user->name}.\n";
 
-        if ($user->user_context)
+        if ($user->user_context && $parsedMessage['hasContext'])
             $systemContext .= "Contexte utilisateur: \n{$user->user_context}\n";
-        if ($user->ai_behavior)
+        if ($user->ai_behavior && $parsedMessage['hasContext'])
             $systemContext .= "Comportemement de l'IA: \n{$user->ai_behavior}\n";
 
         if ($parsedMessage['hasCommands'] && !empty($parsedMessage['commands']) && $user->custom_commands) {
-            $systemContext .= "Commandes personnalisées:\n";
+            $systemContext .= "COMMANDES OBLIGATOIRES à exécuter IMMÉDIATEMENT :\n";
             foreach ($user->custom_commands as $command) {
-                if (in_array(strtolower($command['token']), $parsedMessage['commands']))
+                if (in_array(strtolower($command['token']), $parsedMessage['commands'])) // User : Custom_command ['token' => '/cmd', 'description' => 'Description de la commande']
                     $systemContext .= "- {$command['token']} : {$command['description']}\n";
             }
-            $systemContext .= "\n";
+            $systemContext .= "Tu DOIS absolument exécuter ces commandes dans ta réponse. \n";
         }
         return ['role' => 'system', 'content' => $systemContext];
     }
@@ -448,19 +442,18 @@ class ChatService
 
     public function checkModel(?string $model): string
     {
-        $model = trim((string) $model);
-        if ($model === '') {
+        if (!$model)
+            return self::DEFAULT_MODEL;
+        //Check si le model existe et active en db
+        $modelExist = AiModel::where('model_id', $model)->where('is_active', true)->exists();
+
+        if (!$modelExist) {
+            logger()->warning('Modèle non disponible ou inactif', [
+                'model' => $model,
+                'return DEFAULt_model' => self::DEFAULT_MODEL
+            ]);
             return self::DEFAULT_MODEL;
         }
-
-        //Models de Api
-        $apiIds = collect($this->getModels())->pluck('id');
-
-        //Models de db
-        $dbIds = collect($this->getModelsFromDb())->pluck('id');
-
-        $corresp = $apiIds->merge($dbIds)->unique();
-
-        return ($corresp->contains($model) ? $model : self::DEFAULT_MODEL);
+        return ($model);
     }
 }

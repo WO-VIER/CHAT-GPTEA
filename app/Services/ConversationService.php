@@ -19,6 +19,7 @@ use OpenAI\Responses\Chat\CreateResponseMessage;
 
 
 use function Pest\Laravel\json;
+use App\Services\ChatService;
 
 class ConversationService
 {
@@ -28,6 +29,7 @@ class ConversationService
     {
         $this->chatService = $chatService;
     }
+
 
     public function getAllConversationsWithMessages(): array
     {
@@ -43,11 +45,44 @@ class ConversationService
                         'user_message' => $message->getMessageUser(),
                         'ai_message' => $message->getMessageAssistant(),
                         'created_at' => $message->created_at,
+                        'model' => $message->model_id,
                     ];
                 }),
             ];
         })->toArray();
     }
+
+    public function getConversationWithMessages($conversationId)
+    {
+        $user = auth()->user();
+        $conversation = $user->conversations()->with('messages')->orderBy('created_at', 'desc')->find($conversationId);
+        if (!$conversation)
+            return null;
+        return [
+            'id' => $conversation->id,
+            'title' => $conversation->title,
+            'updated_at' => $conversation->updated_at->diffForHumans(),
+            'messages' => $conversation->messages->map(function ($message) {
+                return [
+                    'id' => $message->id,
+                    'user_message' => $message->getMessageUser(),
+                    'ai_message' => $message->getMessageAssistant(),
+                    'created_at' => $message->created_at,
+                    'model' => $message->model_id,
+                ];
+            })->toArray(),
+        ];
+    }
+    public function getLastModelOfConversation($conversationId)
+    {
+        $conversation = $this->getConversationWithMessages($conversationId);
+        if ($conversation && isset($conversation['messages']) && count($conversation['messages']) > 0) {
+            $lastMessage = $conversation['messages'][0]; // messages triés par 'created_at' desc
+            return $lastMessage['model'] ?? ChatService::DEFAULT_MODEL;
+        }
+        return ChatService::DEFAULT_MODEL;
+    }
+
 
     public function getMessagesByConversationById(int $conversationId)
     {

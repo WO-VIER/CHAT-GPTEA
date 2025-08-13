@@ -29,8 +29,8 @@ class AiModelController extends Controller
         $models = AiModel::with('providerIcon')->orderBy('name')->get();
         return response()->json(
             [
+                'count' => $models->count(),
                 'data' => $models,
-                'count' => $models->count()
             ]
         );
     }

@@ -43,6 +43,8 @@ function getSelectedModelName() {
 
 function selectModel(modelId) {
     form.model = modelId
+    console.log('Modèle sélectionné:', modelId)
+  
     showModelSelector.value = false
 }
 
