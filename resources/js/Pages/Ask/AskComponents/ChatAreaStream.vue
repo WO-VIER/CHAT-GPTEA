@@ -167,7 +167,7 @@ defineExpose({
 </script>
 
 <template>
-    <div ref="chatContainer" class="flex-1 overflow-y-auto p-5 bg-slate-900 scroll-smooth">
+    <div ref="chatContainer" class="flex-1 overflow-y-auto p-5 bg-slate-900 scroll-smooth no-scrollbar">
         <!-- Affichage des messages -->
         <div v-if="displayMessages.length > 0">
             <div v-for="message in displayMessages" :key="message.id" class="mb-6">

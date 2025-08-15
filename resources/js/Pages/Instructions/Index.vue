@@ -40,7 +40,7 @@ function goBack() {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-900 text-gray-200 font-mono">
+    <div class="min-h-screen bg-slate-900 text-gray-200 font-mono no-scrollbar">
         <!-- Header -->
         <div class="bg-slate-800 border-b-2 border-slate-700 p-6">
             <div class="max-w-4xl mx-auto">
@@ -57,13 +57,11 @@ function goBack() {
 ░
                 </pre>
                 <div class="flex justify-center mt-2">
-                    <button
-                        @click="$inertia.visit('/ask')"
-                        class="px-3 py-1 text-xs border bg-slate-700 text-rose-500 border-slate-600 hover:opacity-80 cursor-pointer transition-opacity"
-                    >
+                    <button @click="$inertia.visit('/ask')"
+                        class="px-3 py-1 text-xs border bg-slate-700 text-rose-500 border-slate-600 hover:opacity-80 cursor-pointer transition-opacity">
                         Retour au Chat
                     </button>
-            </div>
+                </div>
             </div>
         </div>
 
@@ -85,11 +83,9 @@ function goBack() {
                         Présentez-vous brievement pour personnaliser l'interaction avec votre assistant.
                     </p>
 
-                    <textarea
-                        v-model="form.user_context"
+                    <textarea v-model="form.user_context"
                         class="w-full p-4 bg-slate-700 border border-slate-600 rounded text-gray-100 placeholder-gray-400 font-mono text-sm"
-                        placeholder="Ex: Je suis développeur C et une quiche en dev web. Je désire augmenter mes skills en développement full-stack."
-                    ></textarea>
+                        placeholder="Ex: Je suis développeur C et une quiche en dev web. Je désire augmenter mes skills en développement full-stack."></textarea>
                 </div>
 
                 <!-- Comportement de l'assistant -->
@@ -106,11 +102,9 @@ function goBack() {
                         Définissez comment vous souhaitez que l'assistant interagisse avec vous.
                     </p>
 
-                    <textarea
-                        v-model="form.ai_behavior"
+                    <textarea v-model="form.ai_behavior"
                         class="w-full p-4 bg-slate-700 border border-slate-600 rounded text-gray-100 placeholder-gray-400 font-mono text-sm"
-                        placeholder="Ex: Ton familier, amical pour préserver une ambiance détendue . "
-                    ></textarea>
+                        placeholder="Ex: Ton familier, amical pour préserver une ambiance détendue . "></textarea>
                 </div>
 
                 <!-- Commandes personnalisées -->
@@ -124,75 +118,58 @@ function goBack() {
                     </h2>
 
                     <p class="text-gray-400 text-sm mb-4">
-                       Ici, vous pouvez définir vos porpres commandes.
+                        Ici, vous pouvez définir vos porpres commandes.
                     </p>
 
                     <!-- Liste des commandes -->
                     <div v-if="form.custom_commands.length > 0" class="space-y-4 mb-6">
-                        <div
-                            v-for="(command, index) in form.custom_commands"
-                            :key="index"
-                            class="bg-slate-700 p-4 rounded border border-slate-600"
-                        >
+                        <div v-for="(command, index) in form.custom_commands" :key="index"
+                            class="bg-slate-700 p-4 rounded border border-slate-600">
                             <div class="flex gap-3 mb-3">
-                                <input
-                                    v-model="command.token"
-                                    placeholder="/command"
-                                    class="flex-1 p-2 bg-slate-600 border border-slate-500 rounded text-gray-100 font-mono text-sm placeholder-gray-400"
-                                />
-                                <button
-                                    type="button"
-                                    @click="removeCommand(index)"
-                                    class="px-3 py-2  text-white rounded text-sm hover:bg-red-700 transition-colors"
-                                >
+                                <input v-model="command.token" placeholder="/command"
+                                    class="flex-1 p-2 bg-slate-600 border border-slate-500 rounded text-gray-100 font-mono text-sm placeholder-gray-400" />
+                                <button type="button" @click="removeCommand(index)"
+                                    class="px-3 py-2  text-white rounded text-sm hover:bg-red-700 transition-colors">
                                     X
                                 </button>
                             </div>
-                            <textarea
-                                v-model="command.description"
+                            <textarea v-model="command.description"
                                 placeholder="Description de ce que fait cette commande..."
                                 class="w-full p-2 bg-slate-600 border border-slate-500 rounded text-gray-100 font-mono text-sm placeholder-gray-400"
-                                rows="2"
-                            ></textarea>
+                                rows="2"></textarea>
                         </div>
                     </div>
 
                     <!-- Bouton ajouter commande -->
-                    <button
-                        type="button"
-                        @click="addCommand"
-                        class="w-full px-4 py-3 bg-slate-600 border border-slate-500 text-rose-500 rounded font-mono text-sm hover:bg-slate-500 transition-colors"
-                    >
+                    <button type="button" @click="addCommand"
+                        class="w-full px-4 py-3 bg-slate-600 border border-slate-500 text-rose-500 rounded font-mono text-sm hover:bg-slate-500 transition-colors">
                         AJOUTER UNE COMMANDE
                     </button>
                 </div>
 
                 <!-- Boutons d'action -->
                 <div class="flex gap-4">
-                    <button
-                        type="submit"
+                    <button type="submit"
                         class="flex-1 px-6 py-3 bg-rose-500 text-white rounded hover:bg-rose-600 font-mono font-bold transition-colors"
-                        :disabled="form.processing"
-                    >
+                        :disabled="form.processing">
                         {{ form.processing ? 'SAUVEGARDE...' : ' SAUVEGARDER' }}
                     </button>
 
-                    <button
-                        type="button"
-                        @click="goBack"
-                        class="px-6 py-3 bg-slate-600 border border-slate-500 text-gray-300 rounded hover:bg-slate-500 font-mono transition-colors"
-                    >
+                    <button type="button" @click="goBack"
+                        class="px-6 py-3 bg-slate-600 border border-slate-500 text-gray-300 rounded hover:bg-slate-500 font-mono transition-colors">
                         ANNULER
                     </button>
                 </div>
             </form>
 
             <!-- Messages flash -->
-            <div v-if="$page.props.flash?.success" class="mt-6 p-4 bg-green-900 border border-green-500 rounded text-green-300 font-mono text-sm">
+            <div v-if="$page.props.flash?.success"
+                class="mt-6 p-4 bg-green-900 border border-green-500 rounded text-green-300 font-mono text-sm">
                 {{ $page.props.flash.success }}
             </div>
 
-            <div v-if="$page.props.flash?.error" class="mt-6 p-4 bg-red-900 border border-red-500 rounded text-red-300 font-mono text-sm">
+            <div v-if="$page.props.flash?.error"
+                class="mt-6 p-4 bg-red-900 border border-red-500 rounded text-red-300 font-mono text-sm">
                 {{ $page.props.flash.error }}
             </div>
         </div>

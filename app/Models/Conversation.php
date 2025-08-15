@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Services\ChatService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
+
+use function Termwind\parse;
 
 /**
  * @mixin IdeHelperConversation
@@ -22,9 +25,9 @@ class Conversation extends Model
         return ($this->belongsTo(User::class));
     }
 
-    public function messages() : HasMany
+    public function messages(): HasMany
     {
-        return($this->hasMany(Message::class));
+        return ($this->hasMany(Message::class));
     }
 
     public function latestMessages(): HasMany
@@ -34,13 +37,16 @@ class Conversation extends Model
 
     public function createTitle(): string
     {
-        $firstMessage = $this->messages()->first();
-
-        if(!$firstMessage)
+        $firstMessage = $this->messages()->first()->getMessageUser();
+        if (!$firstMessage)
             return 'Nouveau chat';
 
-        return ($firstMessage->getMessageUser() ?? 'Nouveau chat');
+        $parsedMessage = app(ChatService::class)->parseMessage($firstMessage);
+        if (!$parsedMessage['cleanMessage'])
+            return $firstMessage;
+        return $parsedMessage['cleanMessage'];
     }
+
     /**
      *  [
      *      {"role": "user","content":"...."},
@@ -51,15 +57,13 @@ class Conversation extends Model
     function getAllMessages(): array
     {
         $messages = [];
-        foreach($this->messages as $message)
-        {
-            foreach($message->context as $mixedContext)
-            {
+        foreach ($this->messages as $message) {
+            foreach ($message->context as $mixedContext) {
                 $messages[] =
-                [
-                    'role' =>$mixedContext['role'],
-                    'content' => $mixedContext['content'],
-                ];
+                    [
+                        'role' => $mixedContext['role'],
+                        'content' => $mixedContext['content'],
+                    ];
             }
         }
         return $messages;

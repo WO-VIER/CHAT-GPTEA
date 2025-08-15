@@ -17,18 +17,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Symfony\Component\Mime\MessageConverter;
 
-Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('ask.index');
-    }
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
-/*
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
@@ -37,8 +26,16 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
-*/
-Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(function () {
+
+
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard');
+    })->name('dashboard');
     Route::prefix('/ask')->group(function () {
         Route::get('/', [AskController::class, 'index'])->name('ask.index');
         Route::post('/', [AskController::class, 'finalAsk'])->name('ask.post');
@@ -69,31 +66,34 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session')])->group(fun
     Route::prefix('dev/user/')->group(function () {
         Route::get('{id}', [UserController::class, 'show'])->name('user.show');
     });
-});
-
-Route::get('/clear-cache', function () {
-    Cache::flush();
-    return 'Cache vidé avec succès ! <br><a href="/ask">Retourner à l\'application</a>';
-});
 
 
-Route::prefix('dev/provider-icons')->middleware(['auth'])->group(function () {
-    Route::get('/', [ProviderIconController::class, 'index'])->name('provider-icons.index');
-    Route::get('/list', [ProviderIconController::class, 'list'])->name('provider-icons.list');
-    Route::get('/populate', [ProviderIconController::class, 'populate'])->name('provider-icons.populate');
-});
+    Route::get('/clear-cache', function () {
+        Cache::flush();
+        return 'Cache vidé avec succès ! <br><a href="/ask">Retourner à l\'application</a>';
+    });
 
-Route::prefix('dev/ai-models')->middleware(['auth'])->group(function () {
-    Route::get('/', [AiModelController::class, 'index'])->name('ai-models.index');
-    Route::get('/list', [AiModelController::class, 'list'])->name('ai-models.list');
-    Route::get('/populate', [AiModelController::class, 'populate'])->name('ai-models.populate');
-    Route::get('/populate/null', [AiModelController::class, 'nullproviderIcons'])->name('ai-models.nullproviderIcons');
-    Route::get('/populateNoAuth', [AiModelController::class, 'populateNotAuth'])->name('ai-models.populateNotAuth');
-});
 
-Route::prefix('dev/conversations')->middleware(['auth'])->group(function () {
-    Route::get('/', function () {
-        $user = auth()->user()->conversations()->with('messages')->get();
-        return response()->json($user);
+    Route::prefix('dev/provider-icons')->group(function () {
+        Route::get('/', [ProviderIconController::class, 'index'])->name('provider-icons.index');
+        Route::get('/list', [ProviderIconController::class, 'list'])->name('provider-icons.list');
+        Route::get('/populate', [ProviderIconController::class, 'populate'])->name('provider-icons.populate');
+    });
+
+
+    Route::prefix('dev/ai-models')->group(function () {
+        Route::get('/', [AiModelController::class, 'index'])->name('ai-models.index');
+        Route::get('/list', [AiModelController::class, 'list'])->name('ai-models.list');
+        Route::get('/populate', [AiModelController::class, 'populate'])->name('ai-models.populate');
+        Route::get('/populate/null', [AiModelController::class, 'nullproviderIcons'])->name('ai-models.nullproviderIcons');
+        Route::get('/populateNoAuth', [AiModelController::class, 'populateNotAuth'])->name('ai-models.populateNotAuth');
+    });
+
+
+    Route::prefix('dev/conversations')->group(function () {
+        Route::get('/', function () {
+            $user = auth()->user()->conversations()->with('messages')->get();
+            return response()->json($user);
+        });
     });
 });

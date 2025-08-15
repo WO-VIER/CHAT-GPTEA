@@ -10,12 +10,11 @@ use Illuminate\Http\Request;
 class ConversationController extends Controller
 {
 
-    
 
-   public function conversation(Request $request)
+
+    public function conversation(Request $request)
     {
         $user = auth()->user();
-        dd($request);
         $request->validate([
             'message' => 'required|string',
             'model' => 'required|string',
@@ -40,16 +39,17 @@ class ConversationController extends Controller
 
     public function index(Conversation $conversation)
     {
-        if($conversation->user_id !== auth()->user())
+        if ($conversation->user_id !== auth()->user())
             abort(401, 'Acces non autorisé');
 
         $messages = $conversation->messages()->get();
 
         return response()->json(
             [
-                'conversation'=> $conversation,
+                'conversation' => $conversation,
                 'messages' => $messages,
-            ]);
+            ]
+        );
     }
     /**
      * Show the form for creating a new resource.
@@ -68,12 +68,12 @@ class ConversationController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Display all coversations for the authenticated user.
      */
-    public function show(string $id)
+    public function listConversationsUser()
     {
-        if($conversation->user_id !== auth()->user())
-            abort(401, 'Acces non autorisé');
+        $user = auth()->user();
+        $conversations = $user->conversations()->with('messages')->orderBy('updated_at', 'desc')->get();
     }
 
     /**

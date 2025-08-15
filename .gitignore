@@ -29,3 +29,5 @@ npm-debug.log
 Thumbs.db
 yarn-error.log
 .gitignore
+database.sqlite
+.phpstorm.meta.php

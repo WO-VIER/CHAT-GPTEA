@@ -75,13 +75,6 @@ class ChatService
         });
     }
 
-    /**
-     * @param array{role: 'user'|'assistant'|'system'|'function', content: string} $messages
-     * @param string|null $model
-     * @param float $temperature
-     *
-     * @return string
-     */
 
     public function parseMessage(string $message): array
     {

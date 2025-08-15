@@ -1,8 +1,10 @@
 <!-- filepath: c:\laragon\www\chatgpt-like\resources\js\Pages\Ask\Index.vue -->
 <script setup>
+
 import { useForm, router } from '@inertiajs/vue3'
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import ChatArea from './AskComponents/ChatAreaStream.vue'
+import ConversationList from './AskComponents/ConversationList.vue'
 
 const props = defineProps({
     modelsfromdb: Array,
@@ -14,6 +16,7 @@ const props = defineProps({
 // État local
 const lastMessage = ref('')
 const showModelSelector = ref(false)
+const showSidebar = ref(false);
 const chatAreaRf = ref(null) // Référence vers le composant ChatArea
 
 // Form avec correction pour model
@@ -23,6 +26,16 @@ const form = useForm({
     conversation_id: props.currentConversationId
 })
 
+// Gestion de la touche Escape pour fermer le sélecteur de modèle
+const closeOnEscape = (e) => {
+    if (e.key === 'Escape' && showModelSelector.value) {
+        showModelSelector.value = false
+    }
+    nextTick(() => {
+        const btn = document.querySelector('button[model-selector]')
+        if (btn) btn.blur()
+    })
+}
 
 onMounted(() => {
     console.log('- modelsfromdb:', props.modelsfromdb)
@@ -30,6 +43,15 @@ onMounted(() => {
     console.log('- conversations:', props.conversations)
     console.log('- currentConversationId:', props.currentConversationId)
     console.log('- form.model', form.model)
+    document.addEventListener('keydown', closeOnEscape)
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+})
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', closeOnEscape)
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
 })
 
 // Fonctions existantes...
@@ -44,12 +66,20 @@ function getSelectedModelName() {
 function selectModel(modelId) {
     form.model = modelId
     console.log('Modèle sélectionné:', modelId)
-  
+
     showModelSelector.value = false
+}
+
+function toggleSidebar() {
+    showSidebar.value = !showSidebar.value
 }
 
 function selectConversation(conversationId) {
     lastMessage.value = ''
+
+    //CHATGPT reactif 768
+    if (window.innerWidth < 768)
+        showSidebar.value = false
     useForm({ conversation_id: conversationId }).post('/ask/select-conversation', {
         preserveState: false,
         replace: true
@@ -96,39 +126,36 @@ function onMessageProcessed() {
 
     router.reload({
         only: ['conversations', 'currentConversationId'],
-        preserveScroll: true
+        preserveScroll: true,
+        preserveState: true,
     })
 }
+
+
 
 </script>
 
 <template>
-    <div class="h-screen grid grid-cols-[280px_1fr] font-mono text-gray-200 bg-slate-900">
-        <!-- CONVERSATIONS -->
-        <div class="p-4 overflow-y-auto border-r-2 bg-slate-800 border-slate-700">
-            <pre class="text-xs mb-4 text-center text-rose-500">
-╔═══════════════════════════╗
-║       CONVERSATIONS       ║
-╚═══════════════════════════╝</pre>
-
-            <button @click="startNewConversation"
-                class="w-full p-2 mb-4 cursor-pointer text-xs font-mono border hover:opacity-80 transition-opacity bg-slate-700 text-rose-500 border-slate-600">
-                ┌──── NOUVELLE CONVERSATION ────┐
-            </button>
-
-            <div v-for="conversation in props.conversations" :key="conversation.id"
-                @click="selectConversation(conversation.id)"
-                class="p-2 mb-2 border cursor-pointer text-xs hover:opacity-80 transition-opacity" :class="props.currentConversationId === conversation.id ?
-                    'bg-slate-700 border-rose-500' :
-                    'bg-slate-800 border-slate-700'">
-                <div class="font-bold text-gray-100">{{ conversation.title }}</div>
-                <div class="text-xs text-gray-400">{{ conversation.updated_at }}</div>
-                <div v-if="props.currentConversationId === conversation.id" class="text-xs text-rose-500">■ ACTIVE</div>
-            </div>
+    <div class="h-screen flex font-mono text-gray-200 bg-slate-900 no-scrollbar">
+        <!-- SIDEBAR MOBILE OVERLAY -->
+        <div v-if="showSidebar" class="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            @click="showSidebar = false">
         </div>
 
+        <!-- SIDEBAR CONVERSATIONS -->
+        <div class="transform transition-transform duration-300 z-50" :class="{
+            'translate-x-0': showSidebar,
+            '-translate-x-full': !showSidebar,
+            'md:translate-x-0': true,
+            'fixed md:relative': true,
+            'w-72 md:w-72': true
+        }">
+            <ConversationList :conversations="props.conversations"
+                :current-conversation-id="props.currentConversationId" @select-conversation="selectConversation"
+                @new-conversation="startNewConversation" class="h-full" />
+        </div>
         <!-- MAIN -->
-        <div class="flex flex-col h-screen">
+        <div class="flex-1 flex flex-col h-screen">
 
             <!-- HEADER INSTRUCTIONS / GETMODEL -->
             <div class="flex-none p-4 text-center border-b-2 bg-slate-800 border-slate-700">
@@ -149,7 +176,7 @@ function onMessageProcessed() {
                         class="px-3 py-1 text-xs border bg-slate-700 text-rose-500 border-slate-600 hover:opacity-80 cursor-pointer transition-opacity">
                         Instructions
                     </button>
-                    <button @click="showModelSelector = true"
+                    <button @click="showModelSelector = true" model-selector
                         class="px-3 py-1 text-xs border bg-slate-700 text-rose-500 border-slate-600 hover:opacity-80 cursor-pointer transition-opacity">
                         {{ getSelectedModelName() }}
                     </button>
@@ -159,9 +186,9 @@ function onMessageProcessed() {
             <!--CHAT AREA -->
             <ChatArea ref="chatAreaRf" :current-conversation-id="props.currentConversationId"
                 :conversations="props.conversations" :last-message="lastMessage" :is-processing="form.processing"
-                @message-processed="onMessageProcessed" />
+                @message-processed="onMessageProcessed" class="h-full" />
 
-            <!-- INPUT Form to -->
+            <!-- INPUT Form -->
             <div class="flex-none p-4 border-t-2 bg-slate-800 border-slate-700">
                 <form @submit.prevent="submitForm" class="flex gap-3 items-center">
                     <span class="text-rose-500 text-lg">❯</span>
@@ -200,7 +227,7 @@ function onMessageProcessed() {
                         :class="form.model == model.id ? 'border-rose-500 bg-slate-700' : 'border-slate-600 bg-slate-800'">
                         <!-- IMAGE DU PROVIDER -->
                         <img :src="model.provider_icon" :alt="model.provider_name"
-                            class="w-6 h-6 object-contain flex-shrink-0"/>
+                            class="w-6 h-6 object-contain flex-shrink-0" />
 
                         <!-- INFOS DU MODÈLE -->
                         <div class="flex-1">
