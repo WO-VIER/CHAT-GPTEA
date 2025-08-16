@@ -1,6 +1,4 @@
-<!-- filepath: c:\laragon\www\chatgpt-like\resources\js\Pages\Ask\Index.vue -->
-<script setup>
-
+<script setup lang="ts">
 import { useForm, router } from '@inertiajs/vue3'
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import ChatArea from './AskComponents/ChatAreaStream.vue'
@@ -17,7 +15,20 @@ const props = defineProps({
 const lastMessage = ref('')
 const showModelSelector = ref(false)
 const showSidebar = ref(false);
-const chatAreaRf = ref(null) // Référence vers le composant ChatArea
+const chatAreaRf = ref(null)
+
+// Utiliser directement les props avec computed
+const conversations = computed(() => props.conversations)
+const currentConversationId = computed(() => props.currentConversationId)
+
+function updateConversations() {
+
+    //Avant un fetch
+
+    router.reload({
+        only: ['conversations', 'currentConversationId'],
+    })
+}
 
 // Form avec correction pour model
 const form = useForm({
@@ -70,10 +81,6 @@ function selectModel(modelId) {
     showModelSelector.value = false
 }
 
-function toggleSidebar() {
-    showSidebar.value = !showSidebar.value
-}
-
 function selectConversation(conversationId) {
     lastMessage.value = ''
 
@@ -113,7 +120,7 @@ function submitForm() {
     chatAreaRf.value?.sendMessage(
         messageToSend,
         form.model,
-        props.currentConversationId
+        currentConversationId.value
     )
 
     form.reset('message')
@@ -123,15 +130,8 @@ function submitForm() {
 function onMessageProcessed() {
     lastMessage.value = ''
     console.log('Message traité avec succès')
-
-    router.reload({
-        only: ['conversations', 'currentConversationId'],
-        preserveScroll: true,
-        preserveState: true,
-    })
+    updateConversations()
 }
-
-
 
 </script>
 
@@ -143,6 +143,7 @@ function onMessageProcessed() {
         </div>
 
         <!-- SIDEBAR CONVERSATIONS -->
+
         <div class="transform transition-transform duration-300 z-50" :class="{
             'translate-x-0': showSidebar,
             '-translate-x-full': !showSidebar,
@@ -150,9 +151,9 @@ function onMessageProcessed() {
             'fixed md:relative': true,
             'w-72 md:w-72': true
         }">
-            <ConversationList :conversations="props.conversations"
-                :current-conversation-id="props.currentConversationId" @select-conversation="selectConversation"
-                @new-conversation="startNewConversation" class="h-full" />
+            <!-- Utiliser les computed conversations et currentConversationId -->
+            <ConversationList :conversations="conversations" :current-conversation-id="currentConversationId"
+                @select-conversation="selectConversation" @new-conversation="startNewConversation" class="h-full" />
         </div>
         <!-- MAIN -->
         <div class="flex-1 flex flex-col h-screen">
@@ -184,9 +185,10 @@ function onMessageProcessed() {
             </div>
 
             <!--CHAT AREA -->
-            <ChatArea ref="chatAreaRf" :current-conversation-id="props.currentConversationId"
-                :conversations="props.conversations" :last-message="lastMessage" :is-processing="form.processing"
-                @message-processed="onMessageProcessed" class="h-full" />
+            <!-- Utiliser les computed conversations et currentConversationId -->
+            <ChatArea ref="chatAreaRf" :current-conversation-id="currentConversationId" :conversations="conversations"
+                :last-message="lastMessage" :is-processing="form.processing" @message-processed="onMessageProcessed"
+                class="h-full" />
 
             <!-- INPUT Form -->
             <div class="flex-none p-4 border-t-2 bg-slate-800 border-slate-700">
@@ -207,7 +209,7 @@ function onMessageProcessed() {
         <!-- MODELS -->
         <div v-if="showModelSelector"
             class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-            <div class="bg-slate-800 border border-rose-500 rounded p-6 max-w-lg w-full mx-4 max-h-96 overflow-y-auto">
+            <div class="bg-slate-800 rounded p-6 max-w-lg w-full mx-4 max-h-96 no-scrollbar overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-rose-500 font-bold">SÉLECTION MODÈLE</h3>
                     <button @click="showModelSelector = false"

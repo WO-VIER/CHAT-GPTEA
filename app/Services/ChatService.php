@@ -396,7 +396,7 @@ class ChatService
 
     public function getModelsFromDb(): array
     {
-        return cache()->remember('oppenrouter.models_db', now()->addDay(), function () {
+        return cache()->remember('oppenrouter.models_db', now()->addMinutes(5), function () {
             return AiModel::where('is_active', true)->with('providerIcon')->orderBy('name')->get()
                 ->map(function ($model) {
                     return

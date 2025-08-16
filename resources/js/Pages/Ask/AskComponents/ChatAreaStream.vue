@@ -2,6 +2,8 @@
 import { ref, computed, nextTick, watch, onMounted } from 'vue';
 import { useStream } from '@laravel/stream-vue';
 import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github-dark.css';
 
 const props = defineProps({
     currentConversationId: Number,
@@ -20,9 +22,13 @@ const md = new MarkdownIt({
     html: true,
     linkify: true,
     typographer: true,
-    breaks: true,
     highlight: function (str, lang) {
-        return `<pre class="hljs"><code>${str}</code></pre>`;
+        if (lang && hljs.getLanguage(lang)) {
+            try {
+                return `<pre class="hljs rounded-md p-4 overflow-x-auto bg-slate-800"><code class="hljs language-${lang}">${hljs.highlight(str, { language: lang }).value}</code></pre>`;
+            } catch (__) { }
+        }
+        return `<pre class="hljs rounded-md p-4 overflow-x-auto bg-slate-800"><code class="hljs">${hljs.highlightAuto(str).value}</code></pre>`;
     }
 });
 
@@ -167,7 +173,7 @@ defineExpose({
 </script>
 
 <template>
-    <div ref="chatContainer" class="flex-1 overflow-y-auto p-5 bg-slate-900 scroll-smooth no-scrollbar">
+    <div ref="chatContainer" class="flex-1 overflow-y-auto p-5 bg-slate-900 no-scrollbar">
         <!-- Affichage des messages -->
         <div v-if="displayMessages.length > 0">
             <div v-for="message in displayMessages" :key="message.id" class="mb-6">
@@ -178,10 +184,10 @@ defineExpose({
                     <span class="ml-3 text-gray-100">{{ message.content[0]?.data }}</span>
                 </div>
                 <!-- Message assistant -->
-                <div v-if="message.role === 'assistant'"
-                    class="p-4 border-l-4 ml-5 bg-slate-800 border-rose-500 rounded-r">
+                <div v-if="message.role === 'assistant'" class="rounded-md p-4 ml-5 bg-slate-800 ">
                     <span class="text-rose-500 font-bold">AI&gt;</span>
-                    <div class="mt-2 text-gray-300" v-html="renderMarkdown(message.content[0]?.data)"></div>
+                    <div class="mt-2 prose prose-slate dark:prose-invert max-w-none"
+                        v-html="renderMarkdown(message.content[0]?.data)"></div>
                 </div>
             </div>
         </div>

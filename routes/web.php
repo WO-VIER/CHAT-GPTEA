@@ -41,6 +41,7 @@ Route::middleware([
         Route::post('/', [AskController::class, 'finalAsk'])->name('ask.post');
         Route::post('/new-conversation', [AskController::class, 'newConversation'])->name('ask.newConversation');
         Route::post('/select-conversation', [AskController::class, 'selectConversation'])->name('ask.select-conversation');
+        Route::get('/get-conversations', [AskController::class, 'getConversations'])->name('ask.conversations');
         Route::get('/debug', [AskController::class, 'debug'])->name('ask.debug');
     });
 

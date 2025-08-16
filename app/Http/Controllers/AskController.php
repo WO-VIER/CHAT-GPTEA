@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Barryvdh\Debugbar\Facades\Debugbar;
+use Barryvdh\Debugbar\Twig\Extension\Debug;
 use OpenAI\Resources\Models;
 
 class AskController extends Controller
@@ -132,10 +133,11 @@ class AskController extends Controller
         return redirect()->back();
     }
 
-    public function newConversation(Request $request)
+    public function newConversation()
     {
-        session()->forget('currentConversationId');
-        //$this->conversationService->createConv(auth()->user());
+        session(['currentConversationId' => null]);
+        //$conversation = $this->conversationService->createConv(auth()->user());
+        //session(['currentConversationId' => $conversation->id]);
         return redirect()->back();
     }
 
@@ -222,5 +224,17 @@ class AskController extends Controller
             );
             return redirect()->back()->with('error', 'Erreur: ' . $e->getMessage());
         }
+    }
+
+
+    public function getConversations(): JsonResponse
+    {
+        $conversations = $this->conversationService->getAllConversationsWithMessages();
+        $currentConversationId = session('currentConversationId');
+        Debugbar::info('Current : Conversations:', session('currentConversationId'));
+        return response()->json([
+            'conversations' => $conversations,
+            'currentConversationId' => $currentConversationId,
+        ]);
     }
 }

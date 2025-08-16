@@ -28,7 +28,7 @@ class StreamController extends Controller
             'conversation_id' => 'nullable|integer',
         ]);
 
-        Debugbar::info('streamMessage - Début', [
+        logger()->info('streamMessage - Début', [
             'model_recu ' => $request->model,
             'message' => $request->text,
             'conversation_id' => $request->conversation_id,
@@ -36,21 +36,23 @@ class StreamController extends Controller
         ]);
 
         $user = auth()->user();
-        //$conversationId = session('currentConversationId');
         $conversationId = $request->conversation_id;
         $conversation = null;
 
-        if ($conversationId) // Recupe la conv dans la session
+        if ($conversationId) {
             $conversation = $user->conversations()->find($conversationId);
+        }
+
         if (!$conversation) {
             $conversation = $this->conversationService->createConv($user);
             session(['currentConversationId' => $conversation->id]);
+            logger()->info('Nouvelle conversation créée', ['conversation_id' => $conversation->id]);
         }
 
         $allMessages = $conversation->getAllMessages();
 
 
-        Debugbar::info('CONVERSATION complète', [
+        logger()->info('CONVERSATION complète', [
             'conversation_id' => $conversation->id,
             'conversation_title' => $conversation->title,
             'nb_messages_historique' => count($allMessages),

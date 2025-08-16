@@ -28,7 +28,7 @@ return new class extends Migration
             $table->foreign('provider_name')
                 ->references('name')->on('provider_icons')
                 ->cascadeOnUpdate()
-                ->restrictOnDelete();
+                ->cascadeOnDelete(); // or ->restrictOnDelete();
         });
     }
 

@@ -1,7 +1,6 @@
-<!-- resources/js/Pages/Instructions/Index.vue -->
 <script setup>
 import { useForm } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
     user_context: String,
@@ -37,6 +36,18 @@ function saveInstructions() {
 function goBack() {
     window.history.back()
 }
+
+
+onMounted(() => {
+    document.body.style.overflow = 'auto'
+    document.documentElement.style.overflow = 'auto'
+})
+
+onUnmounted(() => {
+
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+})
 </script>
 
 <template>
@@ -66,7 +77,7 @@ function goBack() {
         </div>
 
         <!-- Contenu principal -->
-        <div class="max-w-4xl mx-auto p-6">
+        <div class="max-w-4xl mx-auto p-6 overflow-y-auto">
             <form @submit.prevent="saveInstructions" class="space-y-8">
 
                 <!-- À propos de vous -->

@@ -70,11 +70,7 @@ class ConversationController extends Controller
     /**
      * Display all coversations for the authenticated user.
      */
-    public function listConversationsUser()
-    {
-        $user = auth()->user();
-        $conversations = $user->conversations()->with('messages')->orderBy('updated_at', 'desc')->get();
-    }
+    public function list() {}
 
     /**
      * Show the form for editing the specified resource.
